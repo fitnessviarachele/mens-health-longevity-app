@@ -18,7 +18,7 @@ export function setBackendToLocal() {
 function readLocal(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch (e) {
+  } catch {
     return [];
   }
 }

@@ -2,10 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
-  Archive,
   ArrowLeft,
   CalendarDays,
-  ChevronRight,
   ClipboardList,
   Dumbbell,
   FlaskConical,
@@ -14,18 +12,13 @@ import {
   LineChart,
   MessageSquare,
   Phone,
-  ShieldCheck,
   Stethoscope,
   Target,
-  Trash2,
   UserCog,
   Users,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NewPatientModal from "@/components/NewPatientModal";
 import NewTrainerModal from "@/components/NewTrainerModal";
 import ArchivePatientModal from "@/components/ArchivePatientModal";
@@ -34,6 +27,31 @@ import MergeSelectedPatientsModal from "@/components/MergeSelectedPatientsModal"
 import Signup from "@/components/Signup";
 import Verify from "@/components/Verify";
 import storage from "@/lib/storage";
+import { SectionHeader } from "@/components/layout/SectionHeader";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { AppRow } from "@/components/shared/AppRow";
+import { BarList } from "@/components/shared/BarList";
+import { MetricCard } from "@/components/shared/MetricCard";
+import { PersonRow } from "@/components/shared/PersonRow";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import {
+  activityBars,
+  allPatients,
+  careTeam,
+  clinicianMetrics,
+  defaultSectionByRole,
+  goalProgress,
+  labs,
+  moduleCompletion,
+  modules,
+  nutritionBars,
+  patientMetrics,
+  patientProfiles,
+  schedule,
+  teamMembers,
+  trainerMetrics,
+  weeklyGoals,
+} from "@/data/mockData";
 
 const roleConfig = {
   admin: {
@@ -92,492 +110,6 @@ const roleConfig = {
     ],
   },
 };
-
-const defaultSectionByRole = {
-  admin: "overview",
-  clinician: "overview",
-  trainer: "overview",
-  patient: "dashboard",
-};
-
-const adminMetrics = [
-  { label: "Total patients", value: "48", trend: "Across all clinicians and trainers" },
-  { label: "Clinicians", value: "6", trend: "2 accepting new patients" },
-  { label: "Trainers", value: "5", trend: "1 onboarding this week" },
-];
-
-const clinicianMetrics = [
-  { label: "Assigned patients", value: "24", trend: "Only your roster is shown" },
-  { label: "Avg adherence", value: "76%", trend: "↑ 8% vs last cohort" },
-  { label: "Appts today", value: "6", trend: "2 remaining" },
-];
-
-const trainerMetrics = [
-  { label: "Training clients", value: "18", trend: "Patients assigned to you" },
-  { label: "Avg completion", value: "82%", trend: "Strength and cardio tasks" },
-  { label: "Sessions today", value: "4", trend: "2 virtual, 2 in-clinic" },
-];
-
-const patientMetrics = [
-  { label: "Weight", value: "87", unit: "kg", trend: "↓ 3.2kg since start", positive: true },
-  { label: "Blood pressure", value: "122/78", trend: "↑ Improved", positive: true },
-  { label: "Sleep avg", value: "7.2", unit: "hr", trend: "↑ +0.8hr", positive: true },
-];
-
-const weeklyGoals = [
-  { text: "3× strength sessions", done: true },
-  { text: "Log meals Mon–Thu", done: true },
-  { text: "Complete sleep module", done: false },
-  { text: "Morning walk 5 of 7 days", done: false },
-];
-
-const nutritionBars = [
-  { label: "Protein", value: 78, display: "156g" },
-  { label: "Carbs", value: 55, display: "210g" },
-  { label: "Fats", value: 60, display: "68g" },
-  { label: "Calories", value: 85, display: "2,180" },
-];
-
-const activityBars = [
-  { label: "Steps/day", value: 72, display: "8,640" },
-  { label: "Active mins", value: 66, display: "198" },
-  { label: "Strength", value: 100, display: "3/3" },
-];
-
-const modules = [
-  { icon: "🧠", title: "Stress & cognitive health", desc: "HRV, mindfulness, sleep architecture", status: "Completed" },
-  { icon: "🏋️", title: "Strength & muscle", desc: "Progressive overload, recovery protocols", status: "In progress" },
-  { icon: "🥗", title: "Metabolic nutrition", desc: "Protein optimisation, meal timing, gut health", status: "In progress" },
-  { icon: "💤", title: "Sleep optimisation", desc: "Circadian rhythm, sleep hygiene, recovery", status: "Upcoming" },
-  { icon: "🩸", title: "Hormonal health", desc: "Testosterone, cortisol, thyroid markers", status: "Upcoming" },
-  { icon: "❤️", title: "Cardiovascular health", desc: "Zone 2 training, lipid panel, BP targets", status: "Upcoming" },
-];
-
-const goalProgress = [
-  { label: "Weight", value: 64 },
-  { label: "Activity", value: 80 },
-  { label: "Sleep", value: 50 },
-  { label: "Hormones", value: 30 },
-];
-
-const labs = {
-  hormones: [
-    { name: "Total testosterone", ref: "Ref: 300–1,000 ng/dL", value: "624 ng/dL", normal: true },
-    { name: "Free testosterone", ref: "Ref: 9–30 ng/dL", value: "8.2 ng/dL", normal: false },
-    { name: "Cortisol (AM)", ref: "Ref: 6–23 µg/dL", value: "14.3 µg/dL", normal: true },
-  ],
-  metabolic: [
-    { name: "HbA1c", ref: "Ref: <5.7%", value: "5.3%", normal: true },
-    { name: "LDL cholesterol", ref: "Ref: <100 mg/dL", value: "118 mg/dL", normal: false },
-    { name: "HDL cholesterol", ref: "Ref: >40 mg/dL", value: "52 mg/dL", normal: true },
-    { name: "hsCRP", ref: "Ref: <1.0 mg/L", value: "0.7 mg/L", normal: true },
-  ],
-};
-
-const schedule = [
-  { date: "Apr 24", name: "8-week review — Dr. Chen", type: "Program check-in · Video", status: "Confirmed" },
-  { date: "May 6", name: "Blood draw & labs", type: "Pathology · In-clinic", status: "Scheduled" },
-  { date: "May 15", name: "Nutrition coaching", type: "With Dana Walsh RD · Video", status: "Scheduled" },
-  { date: "May 28", name: "12-week graduation review", type: "Full assessment · In-clinic", status: "Tentative" },
-];
-
-const allPatients = [
-  { initials: "JM", name: "James Morrison", note: "Week 8 · Clinician: Dr. Chen · Trainer: Alex", status: "On track" },
-  { initials: "DK", name: "Derek Klein", note: "Week 5 · Clinician: Dr. Chen · Trainer: Maya", status: "At risk" },
-  { initials: "TR", name: "Tom Reeves", note: "Week 1 · Clinician: Dr. Cole · Trainer: Alex", status: "New" },
-  { initials: "MR", name: "Marcus Reid", note: "Week 6 · Clinician: Dr. Chen · Trainer: Alex", status: "On track" },
-  { initials: "PH", name: "Phil Hartley", note: "Week 11 · Clinician: Dr. Cole · Trainer: Maya", status: "Excellent" },
-];
-
-const clinicianAssignedPatients = allPatients.filter((patient) => ["JM", "DK", "MR"].includes(patient.initials));
-const trainerAssignedPatients = allPatients.filter((patient) => ["JM", "TR", "MR"].includes(patient.initials));
-
-const teamMembers = [
-  { initials: "SC", name: "Dr. Sarah Chen", note: "Clinician · 24 assigned patients", status: "Active", role: "clinician" },
-  { initials: "JC", name: "Dr. Julia Cole", note: "Clinician · 24 assigned patients", status: "Active", role: "clinician" },
-  { initials: "AR", name: "Alex Rivera", note: "Trainer · 18 assigned patients", status: "Active", role: "trainer" },
-  { initials: "MP", name: "Maya Patel", note: "Trainer · 16 assigned patients", status: "Active", role: "trainer" },
-];
-
-const moduleCompletion = [
-  { label: "Stress & cognition", value: 87 },
-  { label: "Strength", value: 74 },
-  { label: "Nutrition", value: 68 },
-  { label: "Sleep", value: 45 },
-  { label: "Hormonal health", value: 30 },
-];
-
-const careTeam = [
-  { initials: "SC", name: "Dr. Sarah Chen", role: "Assigned clinician", contact: "Secure message or clinic line", status: "Available" },
-  { initials: "AR", name: "Alex Rivera", role: "Assigned trainer", contact: "In-app chat or session booking", status: "Available" },
-];
-
-const patientProfiles = {
-  JM: {
-    initials: "JM",
-    name: "James Morrison",
-    status: "On track",
-    week: "Week 8",
-    clinician: "Dr. Sarah Chen",
-    trainer: "Alex Rivera",
-    age: 46,
-    program: "12-week longevity program",
-    adherence: 88,
-    metrics: [
-      { label: "Weight", value: "87", unit: "kg", trend: "↓ 3.2kg since start", positive: true },
-      { label: "Blood pressure", value: "122/78", trend: "↑ Improved", positive: true },
-      { label: "Sleep avg", value: "7.2", unit: "hr", trend: "↑ +0.8hr", positive: true },
-    ],
-    goals: ["3× strength sessions", "Lower LDL cholesterol", "Sleep 7.5+ hrs/night", "Complete week 9 training block"],
-    notes: [
-      "Responding well to current strength progression.",
-      "Needs minor increase in zone 2 cardio volume.",
-      "Continue nutrition adherence and sleep routine work.",
-    ],
-    appointments: [
-      { left: "Apr 24", title: "8-week review — Dr. Chen", subtitle: "Program check-in · Video", badge: "Confirmed" },
-      { left: "May 6", title: "Blood draw & labs", subtitle: "Pathology · In-clinic", badge: "Scheduled" },
-    ],
-  },
-  DK: {
-    initials: "DK",
-    name: "Derek Klein",
-    status: "At risk",
-    week: "Week 5",
-    clinician: "Dr. Sarah Chen",
-    trainer: "Maya Patel",
-    age: 52,
-    program: "12-week longevity program",
-    adherence: 52,
-    metrics: [
-      { label: "Weight", value: "94", unit: "kg", trend: "↔ No change this week", positive: true },
-      { label: "Blood pressure", value: "134/84", trend: "Needs follow-up", positive: false },
-      { label: "Sleep avg", value: "6.1", unit: "hr", trend: "↓ Below target", positive: false },
-    ],
-    goals: ["Resume weekly check-ins", "Improve sleep consistency", "Complete missed nutrition logs", "Rebook clinician review"],
-    notes: [
-      "Missed two recent check-ins.",
-      "Would benefit from simpler weekly action plan.",
-      "Lab review should be prioritized next visit.",
-    ],
-    appointments: [{ left: "Apr 25", title: "Check-in consult", subtitle: "Video follow-up", badge: "Scheduled" }],
-  },
-  TR: {
-    initials: "TR",
-    name: "Tom Reeves",
-    status: "New",
-    week: "Week 1",
-    clinician: "Dr. Julia Cole",
-    trainer: "Alex Rivera",
-    age: 39,
-    program: "12-week longevity program",
-    adherence: 100,
-    metrics: [
-      { label: "Weight", value: "91", unit: "kg", trend: "Baseline captured", positive: true },
-      { label: "Blood pressure", value: "128/80", trend: "Baseline", positive: true },
-      { label: "Sleep avg", value: "6.8", unit: "hr", trend: "Initial baseline", positive: true },
-    ],
-    goals: ["Complete onboarding", "Movement screen", "Baseline meal logging", "Set first monthly targets"],
-    notes: ["New patient onboarding in progress.", "Trainer-led movement screen scheduled."],
-    appointments: [{ left: "Apr 23", title: "Intro consult", subtitle: "In-clinic", badge: "Today" }],
-  },
-  MR: {
-    initials: "MR",
-    name: "Marcus Reid",
-    status: "On track",
-    week: "Week 6",
-    clinician: "Dr. Sarah Chen",
-    trainer: "Alex Rivera",
-    age: 49,
-    program: "12-week longevity program",
-    adherence: 74,
-    metrics: [
-      { label: "Weight", value: "89", unit: "kg", trend: "↓ 1.8kg since start", positive: true },
-      { label: "Blood pressure", value: "126/79", trend: "Improving", positive: true },
-      { label: "Sleep avg", value: "7.0", unit: "hr", trend: "↑ Better recovery", positive: true },
-    ],
-    goals: ["Improve lower body training compliance", "Review labs", "Increase weekly steps", "Tighten nutrition consistency"],
-    notes: ["Requested lower body program update.", "Lab review upcoming."],
-    appointments: [{ left: "Apr 26", title: "Lab results review", subtitle: "Video", badge: "Tomorrow" }],
-  },
-  PH: {
-    initials: "PH",
-    name: "Phil Hartley",
-    status: "Excellent",
-    week: "Week 11",
-    clinician: "Dr. Julia Cole",
-    trainer: "Maya Patel",
-    age: 55,
-    program: "12-week longevity program",
-    adherence: 91,
-    metrics: [
-      { label: "Weight", value: "83", unit: "kg", trend: "↓ 5.1kg since start", positive: true },
-      { label: "Blood pressure", value: "118/76", trend: "At goal", positive: true },
-      { label: "Sleep avg", value: "7.6", unit: "hr", trend: "Consistent target met", positive: true },
-    ],
-    goals: ["Maintain current plan", "Graduation review prep", "Long-term maintenance plan", "Repeat key labs"],
-    notes: ["Excellent engagement and adherence.", "Approaching final review and maintenance transition."],
-    appointments: [{ left: "May 1", title: "Graduation review prep", subtitle: "In-clinic", badge: "Scheduled" }],
-  },
-};
-
-function StatusBadge({ status }) {
-  const styles = {
-    Confirmed: "bg-emerald-100 text-emerald-700",
-    Scheduled: "bg-blue-100 text-blue-700",
-    Tentative: "bg-slate-100 text-slate-700",
-    Completed: "bg-emerald-100 text-emerald-700",
-    "In progress": "bg-amber-100 text-amber-700",
-    Upcoming: "bg-slate-100 text-slate-700",
-    "On track": "bg-emerald-100 text-emerald-700",
-    Excellent: "bg-emerald-100 text-emerald-700",
-    "At risk": "bg-amber-100 text-amber-700",
-    New: "bg-blue-100 text-blue-700",
-    Today: "bg-emerald-100 text-emerald-700",
-    Tomorrow: "bg-blue-100 text-blue-700",
-    "Up next": "bg-amber-100 text-amber-700",
-    Active: "bg-emerald-100 text-emerald-700",
-    Available: "bg-emerald-100 text-emerald-700",
-  };
-
-  return <Badge className={`rounded-full px-3 py-1 font-medium ${styles[status] || "bg-slate-100 text-slate-700"}`}>{status}</Badge>;
-}
-
-function MetricCard({ label, value, unit, trend, positive = true }) {
-  return (
-    <Card className="rounded-2xl border-slate-200 shadow-sm">
-      <CardContent className="p-5">
-        <div className="text-sm text-slate-500">{label}</div>
-        <div className="mt-2 text-3xl font-semibold text-slate-900">
-          {value}
-          {unit ? <span className="ml-1 text-base font-normal text-slate-500">{unit}</span> : null}
-        </div>
-        {trend ? <div className={`mt-2 text-sm ${positive ? "text-emerald-700" : "text-rose-700"}`}>{trend}</div> : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function BarList({ items }) {
-  return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[110px_1fr_56px] items-center gap-3">
-          <div className="text-sm text-slate-500">{item.label}</div>
-          <Progress value={item.value} className="h-2" />
-          <div className="text-right text-sm font-medium text-slate-800">{item.display || `${item.value}%`}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AppRow({ left, title, subtitle, badge }) {
-  return (
-    <div className="flex items-center gap-3 border-b border-slate-100 py-4 last:border-b-0">
-      <div className="w-20 shrink-0 text-sm text-slate-500">{left}</div>
-      <div className="min-w-0 flex-1">
-        <div className="font-medium text-slate-900">{title}</div>
-        <div className="text-sm text-slate-500">{subtitle}</div>
-      </div>
-      <StatusBadge status={badge} />
-    </div>
-  );
-}
-
-function PersonRow({ initials, avatar, name, note, status, onClick, onDelete, onArchive, onViewAsPatient, onViewProfile, onMessage, clickable = false }) {
-  const Wrapper = "div";
-
-  return (
-    <Wrapper
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      className={`flex w-full items-center gap-3 border-b border-slate-100 py-4 text-left last:border-b-0 ${clickable ? "transition hover:bg-slate-50" : ""}`}
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-sm font-semibold text-emerald-700">
-        {avatar ? (
-          <img src={avatar} alt={name} className="h-10 w-10 rounded-full object-cover" />
-        ) : (
-          initials
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="font-medium text-slate-900">{name}</div>
-        <div className="text-sm text-slate-500">{note}</div>
-      </div>
-      <div className="flex items-center gap-2">
-        <StatusBadge status={status} />
-        {onViewProfile ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onViewProfile();
-            }}
-            className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
-            title="View clinician or trainer profile"
-          >
-            <UserCog className="h-4 w-4" />
-          </button>
-        ) : null}
-        {onMessage ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onMessage();
-            }}
-            className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
-            title="Message"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </button>
-        ) : null}
-        {onViewAsPatient ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onViewAsPatient();
-            }}
-            className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
-            title="View patient portal"
-          >
-            <UserCog className="h-4 w-4" />
-          </button>
-        ) : null}
-        {onArchive ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onArchive();
-            }}
-            className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
-          >
-            <Archive className="h-4 w-4" />
-          </button>
-        ) : null}
-        {onDelete ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete();
-            }}
-            className="rounded-full p-2 text-rose-600 hover:bg-rose-100"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        ) : null}
-        {clickable ? <ChevronRight className="h-4 w-4 text-slate-400" /> : null}
-      </div>
-    </Wrapper>
-  );
-}
-
-function RoleSummary({ role }) {
-  const summaries = {
-    admin: {
-      icon: ShieldCheck,
-      title: "Admin permissions",
-      text: "Full control over the platform. Can add clinicians, patients, and trainers and see the full patient list.",
-    },
-    clinician: {
-      icon: Stethoscope,
-      title: "Clinician permissions",
-      text: "Can only view patients assigned to them, along with their own appointments and analytics.",
-    },
-    trainer: {
-      icon: Dumbbell,
-      title: "Trainer permissions",
-      text: "Can view all patients who work with them and manage training-focused programs, notes, and communication.",
-    },
-    patient: {
-      icon: MessageSquare,
-      title: "Patient permissions",
-      text: "Can only access their own profile, but can contact both their assigned trainer and clinician.",
-    },
-  };
-
-  const item = summaries[role];
-  const Icon = item.icon;
-
-  return (
-    <Card className="mx-4 mt-4 rounded-2xl border-emerald-100 bg-emerald-50/60 shadow-sm">
-      <CardContent className="flex items-start gap-3 p-4">
-        <div className="rounded-xl bg-white p-2 text-emerald-700 shadow-sm">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-          <div className="mt-1 text-xs leading-5 text-slate-600">{item.text}</div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Sidebar({ role, section, onRoleChange, onSectionChange }) {
-  const items = roleConfig[role].sections;
-
-  return (
-    <aside className="flex h-full w-full max-w-[290px] flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-5 py-5">
-        <div className="text-lg font-semibold text-slate-900">
-          Apex<span className="text-emerald-700">Longevity</span>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <Tabs value={role} onValueChange={onRoleChange}>
-          <TabsList className="grid w-full grid-cols-4 gap-2 rounded-2xl bg-slate-100 p-1">
-            <TabsTrigger value="admin" className="rounded-xl text-xs">Admin</TabsTrigger>
-            <TabsTrigger value="clinician" className="rounded-xl text-xs">Clinician</TabsTrigger>
-            <TabsTrigger value="trainer" className="rounded-xl text-xs">Trainer</TabsTrigger>
-            <TabsTrigger value="patient" className="rounded-xl text-xs">Patient</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <RoleSummary role={role} />
-
-      <nav className="flex-1 px-3 py-3">
-        <div className="space-y-1">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const active = section === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onSectionChange(item.key)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${active ? "bg-emerald-50 text-emerald-800" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="font-medium">{item.label}</span>
-                {active ? <ChevronRight className="ml-auto h-4 w-4" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-    </aside>
-  );
-}
-
-function SectionHeader({ title, subtitle, initials }) {
-  return (
-    <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
-      </div>
-      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">{initials}</div>
-    </div>
-  );
-}
 
 function PatientProfile({ patient, onBack, role }) {
   if (!patient) return null;
@@ -1229,7 +761,7 @@ function TrainerView({ section, onSelectPatient, selectedPatient, onBackToList, 
   );
 }
 
-function PatientView({ section, patient, onBack }) {
+function PatientView({ section, patient }) {
   if (section === "dashboard") {
     const metrics = patient ? patient.metrics : patientMetrics;
     const goals = patient ? patient.goals.map(text => ({ text, done: false })) : weeklyGoals;
@@ -1814,7 +1346,7 @@ export default function MensHealthLongevityApp() {
         if (persisted && persisted.length) setNewPatients((p) => [...persisted, ...p]);
         const persistedT = await storage.getTrainers();
         if (persistedT && persistedT.length) setNewTrainers((t) => [...persistedT, ...t]);
-      } catch (e) {
+      } catch {
         // ignore load errors
       }
     })();
@@ -1951,11 +1483,6 @@ export default function MensHealthLongevityApp() {
     });
   };
 
-  const handleSignup = (patientId) => {
-    setSignupPatientId(patientId);
-    setShowSignup(true);
-  };
-
   const handleVerify = (token, patientId) => {
     setVerifyToken(token);
     setSignupPatientId(patientId);
@@ -2069,7 +1596,7 @@ export default function MensHealthLongevityApp() {
             transition={{ duration: 0.35 }}
             className="mx-auto grid min-h-[88vh] max-w-7xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl lg:grid-cols-[290px_1fr]"
           >
-          <Sidebar role={role} section={section} onRoleChange={handleRoleChange} onSectionChange={handleSectionChange} />
+          <Sidebar role={role} section={section} roleConfig={roleConfig} onRoleChange={handleRoleChange} onSectionChange={handleSectionChange} />
 
           <main className="flex min-w-0 flex-col bg-slate-50">
             <SectionHeader {...header} />
@@ -2132,7 +1659,7 @@ export default function MensHealthLongevityApp() {
               {role === "trainer" && (
                 <TrainerView section={section} onSelectPatient={handleSelectPatient} selectedPatient={selectedPatient} onBackToList={handleBackToList} patients={activePatients} />
               )}
-              {role === "patient" && <PatientView section={section} patient={selectedPatient || patientProfiles.JM} onBack={handleBackToList} />}
+              {role === "patient" && <PatientView section={section} patient={selectedPatient || patientProfiles.JM} />}
             </div>
           </main>
         </motion.div>
